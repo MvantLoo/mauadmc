@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+from prompt_toolkit import prompt
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import NestedCompleter
+
+def bottom_toolbar():
+    return HTML('This is a <b><style bg="ansired">Toolbar</style></b>!')
+    
+dsmadmc = '/usr/bin/dsmadmc -id=admin -pa=admin '
+dsmadmc_options = ''
+
+prompt_option_noc = False
+prompt_option_comma = False
+prompt_option_tab = False
+
+instance = ''
+warning = ''
+
+completer = NestedCompleter.from_nested_dict({
+    'select': {
+        '*': {
+            'from': {
+                'where': None,
+            }
+        }
+    },
+    'query': {
+        'actlog': None,
+        'drive': None,
+    },
+    'Mau': {
+        'Noc': None,
+        'Comma': None,
+        'Tab': None,
+    },
+    'exit': None,
+})
+
+
+while 1:
+    # Setup the prompt options
+    prompt_options = ''
+    if prompt_option_noc:
+        prompt_options += ' (noc)'
+    if prompt_option_comma:
+        prompt_options += ' (comma)'
+    if prompt_option_tab:
+        prompt_options += ' (tab)'
+    
+
+
+    user_input = prompt(f'{prompt_options} >',
+        history=FileHistory('maudsmc.history.txt'),
+        auto_suggest=AutoSuggestFromHistory(),
+        complete_while_typing=True,
+        completer=completer,
+        bottom_toolbar=warning,
+    )
+    
+    warning = ''  # Reset warning
+
+    cmd = user_input.split()  # Split the user_input by space
+    
+    if cmd[0] == "exit":
+        quit()
+        
+    if cmd[0].lower() in ['m', 'ma', 'mau']:
+        if cmd[1].lower() in ['n', 'no', 'noc']:
+            prompt_option_noc = True if prompt_option_noc == False else False
+            warning='Noc is changed'
+        if cmd[1].lower() in ['c', 'co', 'com', 'comm', 'comma']:
+            prompt_option_comma = True if prompt_option_comma == False else False
+        if cmd[1].lower() in ['t', 'ta', 'tab']:
+            prompt_option_tab = True if prompt_option_tab == False else False
+    
+    print(user_input)

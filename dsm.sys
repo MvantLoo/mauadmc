@@ -1,0 +1,16 @@
+Servername                server_a
+   COMMMethod                TCPip
+   TCPPort                   1500
+   TCPServeraddress          node.domain.company.com
+   
+Servername                INSTB
+   COMMMethod                TCPip
+   TCPPort                   1500
+   TCPServeraddress          node.domain.company.com
+   
+Servername                CCCCC
+   COMMMethod                TCPip
+   TCPPort                   1500
+   TCPServeraddress          node.domain.company.com
+   
+   
