@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!python/bin/python3
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -51,7 +51,7 @@ while 1:
 
 
     user_input = prompt(f'{prompt_options} >',
-        history=FileHistory('maudsmc.history.txt'),
+        history=FileHistory('mauadmc.history.txt'),
         auto_suggest=AutoSuggestFromHistory(),
         complete_while_typing=True,
         completer=completer,
