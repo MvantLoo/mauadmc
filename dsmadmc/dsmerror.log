@@ -1,0 +1,16 @@
+04/26/2020 11:12:52 ANS1579E GSKit function GSKKM_CreateNewKeyDbEx failed with 32: GSKKM_ERR_CRYPTO
+04/26/2020 11:12:52 ANS1579E GSKit function GSKKM_CreateNewKeyDbData failed with 32: GSKKM_ERR_CRYPTO
+04/26/2020 11:12:52 ANS9020E A session could not be established with a IBM Spectrum Protect server or client agent.  The return code is -1. 
+04/26/2020 11:12:52 ANS5283E The operation was unsuccessful.
+04/26/2020 11:12:52 ANS8023E Unable to establish session with server.
+04/26/2020 11:13:05 ANS1579E GSKit function GSKKM_CreateNewKeyDbEx failed with 32: GSKKM_ERR_CRYPTO
+04/26/2020 11:13:05 ANS1579E GSKit function GSKKM_CreateNewKeyDbData failed with 32: GSKKM_ERR_CRYPTO
+04/26/2020 11:13:05 ANS9020E A session could not be established with a IBM Spectrum Protect server or client agent.  The return code is -1. 
+04/26/2020 11:13:05 ANS5283E The operation was unsuccessful.
+04/26/2020 11:13:05 ANS8023E Unable to establish session with server.
+04/26/2020 11:35:29 ANS8017E Command line parameter 1: 'is=admin' is not valid.
+04/26/2020 11:35:29 ANS8019E Id and password must be supplied in Batch mode.
+04/26/2020 11:53:28 ANS5216E Could not establish a TCP/IP connection with address '127.0.0.1:1500'. The TCP/IP error is 'Connection refused' (errno = 111). 
+04/26/2020 11:53:28 ANS9020E A session could not be established with a IBM Spectrum Protect server or client agent.  The return code is -50. 
+04/26/2020 11:53:28 ANS1017E Session rejected: TCP/IP connection failure.
+04/26/2020 11:53:28 ANS8023E Unable to establish session with server.

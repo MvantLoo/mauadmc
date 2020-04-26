@@ -1,4 +1,5 @@
 #!python/bin/python3
+from prompt_toolkit import print_formatted_text, HTML
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -7,7 +8,7 @@ from prompt_toolkit.completion import NestedCompleter
 def bottom_toolbar():
     return HTML('This is a <b><style bg="ansired">Toolbar</style></b>!')
     
-dsmadmc = '/usr/bin/dsmadmc -id=admin -pa=admin '
+dsmadmc = 'dsmadmc/dsmadmc -id=admin -pa=password '
 dsmadmc_options = ''
 
 prompt_option_noc = False
@@ -74,4 +75,4 @@ while 1:
         if cmd[1].lower() in ['t', 'ta', 'tab']:
             prompt_option_tab = True if prompt_option_tab == False else False
     
-    print(user_input)
+    print_formatted_text(user_input)
