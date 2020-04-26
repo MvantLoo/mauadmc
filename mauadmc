@@ -1,19 +1,31 @@
 #!python/bin/python3
+import os, re, csv
 from prompt_toolkit import print_formatted_text, HTML
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import NestedCompleter
+from beautifultable import BeautifulTable
 
-def bottom_toolbar():
-    return HTML('This is a <b><style bg="ansired">Toolbar</style></b>!')
-    
-dsmadmc = 'dsmadmc/dsmadmc -id=admin -pa=password '
-dsmadmc_options = ''
+def toolbar(n, c, t, d, w, inst, warn):
+	noc   = "red" if n else "grey"
+	comma = "red" if c else "grey"
+	tab   = "red" if t else "grey"
+	dis   = "red" if d != "DISPL" else "grey"
+	return HTML(f' <style bg="{noc}">[NOC]</style> <style bg="{comma}">[COMMA]</style> <style bg="{tab}">[TAB]</style> <style bg="{dis}">[{d}]</style> <style bg="green">[WIDTH:{w}]</style> <style bg="blue">{inst}</style>  <style bg="red">{warn}</style>')
 
-prompt_option_noc = False
-prompt_option_comma = False
-prompt_option_tab = False
+def terminal_size():
+    import fcntl, termios, struct
+    th, tw, hp, wp = struct.unpack('HHHH',
+        fcntl.ioctl(0, termios.TIOCGWINSZ,
+        struct.pack('HHHH', 0, 0, 0, 0)))
+    return tw, th
+
+option_noc = False
+option_comma = False
+option_tab = False
+option_displ = "DISPL"  # Displaymode: DISPL - LIST - TABLE
+option_width = 175
 
 instance = ''
 warning = ''
@@ -31,48 +43,149 @@ completer = NestedCompleter.from_nested_dict({
         'drive': None,
     },
     'Mau': {
-        'Noc': None,
-        'Comma': None,
-        'Tab': None,
+		'Set': { 'Noc', 'Comma', 'Tab', 'Displ' },
+		'AUDITocc': None,
+		'ACtlog': None,
     },
     'exit': None,
 })
 
+try:
+	while 1:
+		option_width = terminal_size()[0]
+		
+		#
+		# Wait for user input
+		#
+		user_input = prompt(f'{instance.upper()}>',
+			history=FileHistory('mauadmc.history.txt'),
+			auto_suggest=AutoSuggestFromHistory(),
+			complete_while_typing=True,
+			completer=completer,
+			bottom_toolbar=toolbar(option_noc, option_comma, option_tab, option_displ, option_width, instance, warning),
+		)
+		
+		option_width = terminal_size()[0]
+		
+		# Reset warning
+		warning = ''  
 
-while 1:
-    # Setup the prompt options
-    prompt_options = ''
-    if prompt_option_noc:
-        prompt_options += ' (noc)'
-    if prompt_option_comma:
-        prompt_options += ' (comma)'
-    if prompt_option_tab:
-        prompt_options += ' (tab)'
-    
+		# Split the user_input by space
+		cmd = user_input.split()  
+		
+		# Add the SP options to the dsmadmc command
+		dsmadmc = 'dsmadmc/dsmadmc -id=admin -pa=password '
+		if instance:     dsmadmc += f'-se={instance} '
+		if option_noc:   dsmadmc += '-noconfirm '
+		
+		if cmd[0] == "exit":
+			quit()
+		
+		#
+		# MAU COMMANDS
+		#
+		if cmd[0].lower() in ['m', 'ma', 'mau']:	
+			#
+			# NOC - COMMA - TAB
+			#
+			if cmd[1].lower() in ['s', 'se', 'set']:
+				if cmd[2].lower() in ['n', 'no', 'noc']:
+					option_noc = True if option_noc == False else False
+					print_formatted_text(HTML(f"<green>NoConfirm is toggled</green>"))
+				elif cmd[2].lower() in ['c', 'co', 'com', 'comm', 'comma']:
+					option_comma = True if option_comma == False else False
+					option_tab = False
+					print_formatted_text(HTML(f"<green>CSV-format is toggled</green>"))
+				elif cmd[2].lower() in ['t', 'ta', 'tab']:
+					option_tab = True if option_tab == False else False
+					option_comma = False
+					print_formatted_text(HTML(f"<green>TAB-format is toggled</green>"))
+				elif cmd[2].lower() in ['d', 'di', 'dis', 'disp', 'displ']:
+					if option_displ == "DISPL": option_displ = "TABLE"
+					elif option_displ == "TABLE": option_displ = "LIST"
+					elif option_displ == "LIST":  option_displ = "DISPL"
+					print_formatted_text(HTML(f"<green>DISPL-format is toggled</green>"))
+				elif cmd[2].lower() in ['w', 'wi', 'wid', 'widt', 'width']:
+					try:
+						option_width = int(cmd[2])  # Make int so you're sure its a number
+						print_formatted_text(HTML(f"<green>WIDTH is updated</green>"))
+					except IndexError: 
+						print_formatted_text(HTML(f"<red>ERROR: Width missing or incorrect.</red>"))
 
+			#
+			# QUERIES
+			#
+			# AUDITOCC
+			elif cmd[1].lower() in ['audit', 'auditocc']:
+				sql = 'select node_name,backup_mb+backup_copy_mb,archive_mb+archive_copy_mb,spacemg_mb+spacemg_copy_mb,total_mb from auditocc'
+				dsmcmd = f'{dsmadmc} -dataonly=yes -comma -displaymode=table "{sql}"'
+				result = os.popen(dsmcmd).read().strip()  # Read raw TSM data
+				
+				# Error handling
+				if result[0:8] in ['ANR2034E']:  # no match
+					result = ''
+				elif re.search(r'ANR\d\d\d\d', result[0:7]):  # For other errors
+					print_formatted_text(HTML(f"<red>ERROR:</red> {sql}"))
+					continue  # Back to start of while
 
-    user_input = prompt(f'{prompt_options} >',
-        history=FileHistory('mauadmc.history.txt'),
-        auto_suggest=AutoSuggestFromHistory(),
-        complete_while_typing=True,
-        completer=completer,
-        bottom_toolbar=warning,
-    )
-    
-    warning = ''  # Reset warning
+				table = BeautifulTable()  # Create table
+				table.column_headers = ["NODE_NAME", "BACKUP_MB", "ARCHIVE_MB", "SPACEMG_MB", "TOTAL_MB"]
+				resultList = [y for y in (x.strip() for x in result.splitlines()) if y]  # Split csv output in a list
+				for row in csv.reader(resultList, delimiter=',', quotechar='"'):  # Read line by line and convert csv to a list
+					table.append_row(row)
+				print(table)
+				
+			# ACTLOG
+			elif cmd[1].lower() in ['ac', 'act', 'actl', 'actlo', 'actlog']:
+				sql = 'select date_time,severity,message from actlog where date_time>current_timestamp - 1 hour order by date_time'
+				dsmcmd = f'{dsmadmc} -dataonly=yes -tab -displaymode=table "{sql}"'
+				result = os.popen(dsmcmd).read().strip()  # Read raw TSM data
+				
+				# Error handling
+				if result[0:8] in ['ANR2034E']:  # no match
+					result = ''
+				elif re.search(r'ANR\d\d\d\d', result[0:7]):  # For other errors
+					print_formatted_text(HTML(f"<red>ERROR:</red> {sql}"))
+					continue  # Back to start of while
 
-    cmd = user_input.split()  # Split the user_input by space
-    
-    if cmd[0] == "exit":
-        quit()
-        
-    if cmd[0].lower() in ['m', 'ma', 'mau']:
-        if cmd[1].lower() in ['n', 'no', 'noc']:
-            prompt_option_noc = True if prompt_option_noc == False else False
-            warning='Noc is changed'
-        if cmd[1].lower() in ['c', 'co', 'com', 'comm', 'comma']:
-            prompt_option_comma = True if prompt_option_comma == False else False
-        if cmd[1].lower() in ['t', 'ta', 'tab']:
-            prompt_option_tab = True if prompt_option_tab == False else False
-    
-    print_formatted_text(user_input)
+				table = BeautifulTable(max_width=option_width)  # Create table
+				table.set_style(BeautifulTable.STYLE_COMPACT)
+				table.column_headers = ["DATE_TIME", "SEV", "MESSAGE"]
+				table.column_alignments['DATE_TIME'] = BeautifulTable.ALIGN_LEFT
+				table.column_alignments['SEV'] = BeautifulTable.ALIGN_LEFT
+				table.column_alignments['MESSAGE'] = BeautifulTable.ALIGN_LEFT
+				resultList = [y for y in (x.strip() for x in result.splitlines()) if y]  # Split csv output in a list
+				for row in csv.reader(resultList, delimiter='\t', quotechar='"'):  # Read line by line and convert csv to a list
+					row[0] = row[0][0:19]  # Take only first 19 chars of date/time
+					if   row[1] == 'I': pass  # Do nothing with Info
+					elif row[1] == 'W': row[2] = f'\033[1;33m{row[2]}\033[0m'  # Make \033[1;33m yellow
+					elif row[1] == 'E': row[2] = f'\033[1;31m{row[2]}\033[0m'  # Make \033[1;31m red
+					else              : row[2] = f'\033[1;34m{row[2]}\033[0m'  # Make \033[1;34m blue
+					table.append_row(row)
+				print(table)
+
+			else:
+				print_formatted_text(HTML(f"<red>UNKNOWN COMMAND:</red> {user_input}"))
+				warning = "Unknown command"
+		
+		# OTHER COMMANDS
+		# Just forward to SP
+		else:
+		# Add the SP options to the dsmadmc command
+			dsmadmc = 'dsmadmc/dsmadmc -id=admin -pa=password '
+			if option_noc:   dsmadmc += '-noconfirm '
+			if option_comma: dsmadmc += '-comma '
+			if option_tab:   dsmadmc += '-tab '
+			if option_displ != "DISPL": dsmadmc += f'-displaymode={option_displ} '
+
+			result = os.popen(f'{dsmadmc} "{user_input}"').read().strip()  # Read raw TSM data
+			list = result.splitlines()
+			list = list[9:]  # Skip the TSM headers
+			list = list[:-1] # Skip the last ANS8002I
+			print('\n'.join(list))
+		
+		#print(user_input)
+		
+except KeyboardInterrupt:
+	print_formatted_text(HTML("<b><ansired>Program ended</ansired></b>"))
+	
